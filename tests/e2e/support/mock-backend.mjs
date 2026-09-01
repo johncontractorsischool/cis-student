@@ -3,6 +3,7 @@ import http from "node:http";
 const agreement = "<h2>Fixture enrollment agreement</h2><p>Review these terms before continuing.</p>";
 let acceptedTokens = new Set();
 let completedTokens = new Set();
+let profiles = new Map();
 
 function json(response, status, payload) {
   response.writeHead(status, { "content-type": "application/json" });
@@ -27,7 +28,10 @@ function tokenFrom(request) {
 function fixtureUser(token) {
   const firstLogin = token === "fixture-first-login" && !completedTokens.has(token);
   return {
-    account_type: 1,
+    account_type: token === "fixture-delete" ? 3 : 1,
+    address: "123 Main Street",
+    city: "Sacramento",
+    created_platform: token === "fixture-delete" ? 1 : 0,
     customerid: 100,
     demo_account: false,
     email: firstLogin ? "firstlogin@example.com" : "student@example.com",
@@ -36,7 +40,11 @@ function fixtureUser(token) {
     iapp_access: 0,
     lang: "en",
     lname: "Student",
+    mobilenum: "9165551212",
     name: "Fixture",
+    state: "CA",
+    zip: "95814",
+    ...(profiles.get(token) || {}),
   };
 }
 
@@ -53,6 +61,7 @@ export function startMockBackend(port) {
     if (url.pathname === "/__reset") {
       acceptedTokens = new Set();
       completedTokens = new Set();
+      profiles = new Map();
       return data(response, { reset: true });
     }
     if (path === "/auth/login" && method === "POST") {
@@ -75,11 +84,24 @@ export function startMockBackend(port) {
       acceptedTokens.add(token);
       return data(response, fixtureUser(token));
     }
-    if (path === "/account/first-login-prescreen" && method === "GET") return data(response, { show_modal: true });
+    if (path === "/account/first-login-prescreen" && method === "GET") return data(response, { show_modal: !completedTokens.has(token) });
     if (path === "/account/first-login-prescreen" && method === "POST") {
       completedTokens.add(token);
       return data(response, { created: true });
     }
+    if (path === "/account/change-password" && method === "POST") return data(response, { updated: true });
+    if (path === "/account/update-profile" && method === "POST") {
+      const input = await body(request);
+      profiles.set(token, { ...(profiles.get(token) || {}), ...input });
+      return data(response, fixtureUser(token));
+    }
+    if (path === "/account/update-lang" && method === "POST") {
+      const input = await body(request);
+      profiles.set(token, { ...(profiles.get(token) || {}), lang: input.lang });
+      return data(response, fixtureUser(token));
+    }
+    if (path === "/exam_attempt/reset" && method === "GET") return data(response, { reset: true });
+    if (path === "/account/delete" && method === "POST") return data(response, { deleted: true });
     if (path === "/app") return data(response, {
       no_more_device_message: "Three devices are already registered.",
       register_device_message: "Register this browser to continue.",

@@ -24,17 +24,63 @@ test("existing student can sign in and reach the dashboard", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Renew access" })).toBeVisible();
 });
 
-test("first-login agreement and prescreen complete before dashboard access", async ({ page }) => {
+test("first-login agreement, prescreen, password, and profile complete before dashboard access", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Email address").fill("firstlogin@example.com");
   await page.locator("#login-password").fill("password1");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/first-login$/);
+  await page.goto("/resources");
+  await expect(page).toHaveURL(/\/first-login$/);
   await page.getByLabel("I accept the terms and conditions.").check();
   await page.getByRole("button", { name: "Accept and continue" }).click();
-  await expect(page.getByRole("heading", { name: "Is this your first California contractor license?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Do you already hold a California contractor license?" })).toBeVisible();
   await page.getByRole("button", { name: "Yes" }).click();
+  await expect(page.getByRole("heading", { name: "Change your temporary password" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Change your temporary password" })).toBeVisible();
+  await page.getByLabel("Current password").fill("password1");
+  await page.getByLabel("New password", { exact: true }).fill("newpass1");
+  await page.getByLabel("Confirm new password").fill("newpass1");
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByRole("heading", { name: "Confirm your student profile" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Confirm your student profile" })).toBeVisible();
+  await page.getByRole("button", { name: "Save and continue" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+});
+
+test("student can manage profile, language, password, and exam history", async ({ context, page }) => {
+  await addSession(context);
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "My Account" })).toBeVisible();
+
+  await page.getByLabel("City").fill("Oakland");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Profile updated.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Español" }).click();
+  await expect(page.getByText("Language preference updated.")).toBeVisible();
+
+  await page.getByLabel("Current password").fill("password1");
+  await page.getByLabel("New password", { exact: true }).fill("newpass1");
+  await page.getByLabel("Confirm new password").fill("newpass1");
+  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByText("Password updated.")).toBeVisible();
+
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.getByRole("button", { name: "Reset exams" }).click();
+  await expect(page.getByText("Completed exams were reset.")).toBeVisible();
+});
+
+test("eligible app-created student can delete their account", async ({ context, page }) => {
+  await addSession(context, "fixture-delete");
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Delete account" })).toBeVisible();
+  await page.getByLabel("Type DELETE to confirm").fill("DELETE");
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.getByRole("button", { name: "Delete account" }).click();
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("password recovery and legal routes are public", async ({ page }) => {

@@ -8,6 +8,8 @@ import type { RefreshData } from "@/lib/api/types";
 
 const TOKEN_COOKIE = "cis_session";
 const EXPIRY_COOKIE = "cis_session_expires_at";
+const FIRST_LOGIN_COOKIE = "cis_first_login_setup";
+const FIRST_LOGIN_PASSWORD_COOKIE = "cis_first_login_password_done";
 const REFRESH_SKEW_MS = 30_000;
 
 function cookieOptions() {
@@ -38,13 +40,39 @@ export async function clearSession(): Promise<void> {
   const store = await cookies();
   store.set(TOKEN_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
   store.set(EXPIRY_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
+  store.set(FIRST_LOGIN_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
+  store.set(FIRST_LOGIN_PASSWORD_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
+}
+
+export async function startFirstLoginSetup(): Promise<void> {
+  const store = await cookies();
+  store.set(FIRST_LOGIN_COOKIE, "1", cookieOptions());
+  store.set(FIRST_LOGIN_PASSWORD_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
+}
+
+export async function markFirstLoginPasswordComplete(): Promise<void> {
+  (await cookies()).set(FIRST_LOGIN_PASSWORD_COOKIE, "1", cookieOptions());
+}
+
+export async function finishFirstLoginSetup(): Promise<void> {
+  const store = await cookies();
+  store.set(FIRST_LOGIN_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
+  store.set(FIRST_LOGIN_PASSWORD_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
+}
+
+export async function hasPendingFirstLoginSetup(): Promise<boolean> {
+  return (await cookies()).get(FIRST_LOGIN_COOKIE)?.value === "1";
+}
+
+export async function hasCompletedFirstLoginPassword(): Promise<boolean> {
+  return (await cookies()).get(FIRST_LOGIN_PASSWORD_COOKIE)?.value === "1";
 }
 
 export async function hasSession(): Promise<boolean> {
   return Boolean((await cookies()).get(TOKEN_COOKIE)?.value);
 }
 
-async function refreshSession(token: string): Promise<string> {
+async function refreshSession(token: string, persistRefresh: boolean): Promise<string> {
   const params = new URLSearchParams({ token });
   const refreshed = await backendRequest<RefreshData>(
     `/auth/refresh?${params.toString()}`,
@@ -54,11 +82,14 @@ async function refreshSession(token: string): Promise<string> {
     throw new ApiError("Your session has expired. Please sign in again.", 401);
   }
 
-  await setSession(refreshed.token, refreshed.expires_in);
+  if (persistRefresh) await setSession(refreshed.token, refreshed.expires_in);
   return refreshed.token;
 }
 
-export async function getValidSessionToken(forceRefresh = false): Promise<string> {
+export async function getValidSessionToken(
+  forceRefresh = false,
+  persistRefresh = true,
+): Promise<string> {
   const store = await cookies();
   const token = store.get(TOKEN_COOKIE)?.value;
   const expiresAt = Number(store.get(EXPIRY_COOKIE)?.value || 0);
@@ -72,9 +103,9 @@ export async function getValidSessionToken(forceRefresh = false): Promise<string
   }
 
   try {
-    return await refreshSession(token);
+    return await refreshSession(token, persistRefresh);
   } catch (error) {
-    await clearSession();
+    if (persistRefresh) await clearSession();
     throw error;
   }
 }

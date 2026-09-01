@@ -290,6 +290,7 @@ export function Dashboard() {
     const user = data.user;
     const demo = isDemoAccount(user);
     const tools: Array<{ href: string; icon: LucideIcon; label: string }> = [
+      { href: "/account", icon: UserRound, label: "My Account" },
       { href: "/resources", icon: Layers3, label: "Resources" },
       {
         href: language === "es" ? "/live?l=es" : "/live",
@@ -371,7 +372,7 @@ export function Dashboard() {
         <header className="journey-welcome">
           <div><p className="journey-eyebrow">{ui.welcome}</p><h1>{displayName(user)}</h1><p>Verify this browser to continue to your courses.</p></div>
           <div className="journey-utilities">
-            <div className="student-avatar" aria-label="Student profile"><span>{initials(user)}</span><UserRound aria-hidden="true" /></div>
+            <Link className="student-avatar" href="/account" aria-label="Open My Account"><span>{initials(user)}</span><UserRound aria-hidden="true" /></Link>
             <SignOutButton />
           </div>
         </header>
@@ -441,10 +442,10 @@ export function Dashboard() {
             <button className={language === "en" ? "selected" : ""} onClick={() => changeLanguage("en")}>EN</button>
             <button className={language === "es" ? "selected" : ""} onClick={() => changeLanguage("es")}>ES</button>
           </div>
-          <div className="student-avatar" aria-label="Student profile">
+          <Link className="student-avatar" href="/account" aria-label="Open My Account">
             <span>{initials(user)}</span>
             <UserRound aria-hidden="true" />
-          </div>
+          </Link>
           <SignOutButton />
         </div>
       </header>

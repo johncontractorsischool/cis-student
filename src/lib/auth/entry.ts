@@ -3,16 +3,31 @@ import sanitizeHtml from "sanitize-html";
 import type { User } from "../api/types";
 
 export type EntryPath = "/dashboard" | "/first-login";
+export type EntryStage = "account_setup" | "agreement" | "complete";
 
-export function needsFirstLogin(user: User | null | undefined): boolean {
-  if (!user) return false;
+export function hasPendingFirstLoginFlag(user: User | null | undefined): boolean {
+  if (!user || user.firsttime == null || user.firsttime === "") return false;
   const firstTime = Number(user.firsttime);
-  const agreementId = user.enrollment_agreements?.id;
-  return firstTime !== 0 && firstTime !== 6 && agreementId != null && String(agreementId).trim() !== "";
+  return Number.isFinite(firstTime) && firstTime !== 0 && firstTime !== 6;
 }
 
-export function entryPathForUser(user: User): EntryPath {
-  return needsFirstLogin(user) ? "/first-login" : "/dashboard";
+export function entryStageForUser(
+  user: User | null | undefined,
+  setupPending = false,
+): EntryStage {
+  if (!setupPending && !hasPendingFirstLoginFlag(user)) return "complete";
+  const agreementId = user?.enrollment_agreements?.id;
+  return agreementId != null && String(agreementId).trim() !== ""
+    ? "agreement"
+    : "account_setup";
+}
+
+export function needsFirstLogin(user: User | null | undefined): boolean {
+  return entryStageForUser(user) !== "complete";
+}
+
+export function entryPathForUser(user: User, setupPending = false): EntryPath {
+  return entryStageForUser(user, setupPending) !== "complete" ? "/first-login" : "/dashboard";
 }
 
 export function sanitizeAgreementHtml(value: unknown): string {

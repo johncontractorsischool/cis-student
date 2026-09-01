@@ -16,6 +16,9 @@ export type User = Record<string, unknown> & {
   demo_account?: boolean | number | string;
   email?: string;
   firsttime?: number | string;
+  address?: string | null;
+  city?: string | null;
+  created_platform?: number | string;
   enrollment_agreements?: {
     Agreement_body?: string | null;
     id?: number | string | null;
@@ -23,9 +26,12 @@ export type User = Record<string, unknown> & {
   iapp_access?: number | string;
   lang?: string;
   lname?: string;
+  mobilenum?: string | null;
   name?: string;
+  state?: string | null;
   test_date_law?: string | null;
   test_date_trade?: string | null;
+  zip?: string | null;
 };
 
 export type LoginData = {

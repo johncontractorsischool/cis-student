@@ -4,8 +4,8 @@ import { backendRequest } from "@/lib/api/client";
 import { routeError } from "@/lib/api/route-error";
 import type { LoginData } from "@/lib/api/types";
 import { loginSchema } from "@/lib/auth/schemas";
-import { entryPathForUser } from "@/lib/auth/entry";
-import { setSession } from "@/lib/auth/session";
+import { entryPathForUser, hasPendingFirstLoginFlag } from "@/lib/auth/entry";
+import { finishFirstLoginSetup, setSession, startFirstLoginSetup } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +17,9 @@ export async function POST(request: Request) {
     });
 
     await setSession(login.token, login.expires_in);
-    return NextResponse.json({ data: { user: login.user, nextPath: entryPathForUser(login.user) } });
+    if (hasPendingFirstLoginFlag(login.user)) await startFirstLoginSetup();
+    else await finishFirstLoginSetup();
+    return NextResponse.json({ data: { nextPath: entryPathForUser(login.user) } });
   } catch (error) {
     return routeError(error);
   }
