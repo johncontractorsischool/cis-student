@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
+  AlertTriangle,
   BookOpen,
   BriefcaseBusiness,
   CalendarCheck2,
@@ -12,12 +13,13 @@ import {
   FileText,
   Headphones,
   Layers3,
+  LogOut,
   PlayCircle,
   Radio,
   RefreshCw,
+  ShieldCheck,
   Trophy,
   UserRound,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -134,10 +136,6 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function valueFrom(record: Record<string, unknown> | null, key: string): unknown {
-  return record ? record[key] : undefined;
-}
-
 function displayName(user: User): string {
   const name = [text(user.name), text(user.lname)].filter(Boolean).join(" ");
   return name || text(user.email) || "Student";
@@ -194,6 +192,8 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [registeringDevice, setRegisteringDevice] = useState(false);
+  const [deviceError, setDeviceError] = useState("");
   const [language, setLanguage] = useState<"en" | "es">(() =>
     typeof window !== "undefined" && window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "es"
       ? "es"
@@ -231,6 +231,9 @@ export function Dashboard() {
       }
 
       window.localStorage.setItem(DEVICE_STORAGE_KEY, payload.data.deviceId);
+      if (!window.localStorage.getItem(LANGUAGE_STORAGE_KEY) && (payload.data.user.lang === "en" || payload.data.user.lang === "es")) {
+        setLanguage(payload.data.user.lang);
+      }
       setData(payload.data);
       lastLoadedAt.current = Date.now();
     } catch (loadError) {
@@ -258,13 +261,34 @@ export function Dashboard() {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
   }
 
+  async function registerDevice() {
+    if (!data || registeringDevice) return;
+    setRegisteringDevice(true);
+    setDeviceError("");
+    try {
+      const response = await fetch("/api/device/register", { method: "POST" });
+      const payload = (await response.json()) as {
+        data?: DashboardPayload["deviceStatus"];
+        error?: { message?: string };
+      };
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+      if (!response.ok || !payload.data) throw new Error(payload.error?.message || "Unable to register this browser.");
+      setData((current) => current ? { ...current, deviceStatus: payload.data! } : current);
+      if (payload.data !== "verified") setDeviceError("The backend did not verify this browser. Please try again or contact CIS.");
+    } catch (cause) {
+      setDeviceError(cause instanceof Error ? cause.message : "Unable to register this browser.");
+    } finally {
+      setRegisteringDevice(false);
+    }
+  }
+
   const additionalTools = useMemo(() => {
     if (!data) return [];
     const user = data.user;
     const demo = isDemoAccount(user);
-    const upgradeTest = text(valueFrom(data.upgrades, "demoOrUpgradeTestText"));
-    const upgradeOther = text(valueFrom(data.upgrades, "demoOrUpgradeOtherText"));
-    const upgradeLive = text(valueFrom(data.upgrades, "demoOrUpgradeLiveText"));
     const tools: Array<{ href: string; icon: LucideIcon; label: string }> = [
       { href: "/resources", icon: Layers3, label: "Resources" },
       {
@@ -276,9 +300,6 @@ export function Dashboard() {
 
     if (demo || Number(user.account_type) === 1) {
       tools.push({ href: "/contract-forms", icon: BriefcaseBusiness, label: "Contract Forms" });
-    }
-    if ((demo || upgradeTest || upgradeOther || upgradeLive) && !(demo && language === "es")) {
-      tools.push({ href: "/study-options", icon: Wrench, label: "Study Options" });
     }
     return tools;
   }, [data, language]);
@@ -335,6 +356,39 @@ export function Dashboard() {
               : "Continue studying to build confidence for exam day."
   );
 
+  const deviceBlocked = !isDemoAccount(user) && data.deviceStatus !== "verified";
+  if (deviceBlocked) {
+    const canRegister = data.deviceStatus === "register";
+    const limitReached = data.deviceStatus === "limit_reached";
+    const message = canRegister
+      ? data.app.registerDeviceMessage
+      : limitReached
+        ? data.app.deviceLimitMessage
+        : "CIS could not verify this browser right now. Refresh to try the device check again.";
+    return (
+      <main className="journey-dashboard">
+        <DashboardNotice app={data.app} />
+        <header className="journey-welcome">
+          <div><p className="journey-eyebrow">{ui.welcome}</p><h1>{displayName(user)}</h1><p>Verify this browser to continue to your courses.</p></div>
+          <div className="journey-utilities">
+            <div className="student-avatar" aria-label="Student profile"><span>{initials(user)}</span><UserRound aria-hidden="true" /></div>
+            <SignOutButton />
+          </div>
+        </header>
+        <section className="device-gate dashboard-surface" aria-labelledby="device-gate-title">
+          <span className={limitReached ? "limit" : "register"}>{limitReached ? <AlertTriangle aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}</span>
+          <div><p>Personal device access</p><h2 id="device-gate-title">{canRegister ? "Register this browser" : limitReached ? "Device limit reached" : "Device verification unavailable"}</h2><strong>{message}</strong></div>
+          <div className="device-gate-actions">
+            {canRegister ? <button type="button" disabled={registeringDevice} onClick={() => void registerDevice()}>{registeringDevice ? "Registering…" : "Register browser"}</button> : null}
+            {!canRegister && !limitReached ? <button type="button" onClick={() => void load(true)}>Try again</button> : null}
+            <a href="tel:+18882673926">Call 1-888-267-3926</a>
+          </div>
+          {deviceError ? <p className="form-error" role="alert">{deviceError}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
   const studyCards = [
     {
       button: ui.startPracticing,
@@ -368,6 +422,7 @@ export function Dashboard() {
 
   return (
     <main className="journey-dashboard">
+      <DashboardNotice app={data.app} />
       {liveIsActive(data.liveClassStatus) ? (
         <Link className="journey-live-banner" href={language === "es" ? "/live?l=es" : "/live"}><span />{language === "es" ? "Clase en vivo en progreso" : "Live Class in Progress"}</Link>
       ) : null}
@@ -390,8 +445,11 @@ export function Dashboard() {
             <span>{initials(user)}</span>
             <UserRound aria-hidden="true" />
           </div>
+          <SignOutButton />
         </div>
       </header>
+
+      <RenewalCard renewal={data.renewal} />
 
       <section className="study-panel dashboard-surface" aria-labelledby="study-title">
         <div className="study-panel-heading">
@@ -479,6 +537,50 @@ export function Dashboard() {
         </div>
       </section>
     </main>
+  );
+}
+
+function SignOutButton() {
+  return (
+    <form action="/api/auth/logout" method="post">
+      <button className="icon-button" type="submit" aria-label="Sign out" title="Sign out"><LogOut aria-hidden="true" /></button>
+    </form>
+  );
+}
+
+function DashboardNotice({ app }: { app: DashboardPayload["app"] }) {
+  if (!app.maintenance) return null;
+  return (
+    <details className="dashboard-maintenance">
+      <summary><AlertTriangle aria-hidden="true" />{app.maintenance.title}</summary>
+      <p>{app.maintenance.description}</p>
+    </details>
+  );
+}
+
+function dashboardDate(value: string | null): string {
+  if (!value) return "";
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+function RenewalCard({ renewal }: { renewal: DashboardPayload["renewal"] }) {
+  if (!renewal.buttons.length) return null;
+  const extending = renewal.type === "extension";
+  const relevantDate = extending
+    ? renewal.extensionDate || renewal.expiresAt
+    : renewal.reEnrollmentDate || renewal.expiresAt;
+  return (
+    <section className="renewal-card dashboard-surface" aria-labelledby="renewal-title">
+      <span><RefreshCw aria-hidden="true" /></span>
+      <div><p>Course access</p><h2 id="renewal-title">{extending ? "Extend access" : "Renew access"}</h2><strong>{relevantDate ? `Account expired on ${dashboardDate(relevantDate)}` : "Continue to secure checkout."}</strong></div>
+      <div className="renewal-actions">
+        {renewal.buttons.map((button) => <a key={`${button.label}:${button.url}`} href={button.url} target="_blank" rel="noopener noreferrer">{button.label}</a>)}
+      </div>
+    </section>
   );
 }
 

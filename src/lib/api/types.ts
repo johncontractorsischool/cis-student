@@ -16,6 +16,10 @@ export type User = Record<string, unknown> & {
   demo_account?: boolean | number | string;
   email?: string;
   firsttime?: number | string;
+  enrollment_agreements?: {
+    Agreement_body?: string | null;
+    id?: number | string | null;
+  } | null;
   iapp_access?: number | string;
   lang?: string;
   lname?: string;

@@ -40,5 +40,28 @@ export function PracticeTestList({ categoryId, classId, language }: { categoryId
 }
 
 function TestGroup({ label, query, tests }: { label: string; query: string; tests: PracticeTestSummary[] }) {
-  return <section className="practice-test-group"><div className="course-section-heading"><div><p>Exam set</p><h2>{label}</h2></div><span>{tests.length}</span></div><div>{tests.map((test) => <Link href={`/practice/test/${test.id}${query}`} className="practice-test-row" key={test.id}><span className={test.completed ? "complete" : ""}>{test.completed ? <Check aria-hidden="true" /> : <ClipboardList aria-hidden="true" />}</span><div><h3>{test.title}</h3><p>{test.lastAttemptScore == null ? "Not attempted" : `Last attempt: ${test.lastAttemptScore}%`}</p></div>{test.lastAttemptScore != null ? <strong className={test.lastAttemptScore >= 80 ? "passing" : ""}>{test.lastAttemptScore}%</strong> : null}<ChevronRight aria-hidden="true" /></Link>)}{!tests.length ? <p className="practice-no-tests">No tests were found in this classification.</p> : null}</div></section>;
+  return (
+    <section className="practice-test-group">
+      <div className="course-section-heading"><div><p>Exam set</p><h2>{label}</h2></div><span>{tests.length}</span></div>
+      <div>
+        {tests.map((test) => {
+          const passed = test.lastAttemptScore != null
+            && test.passingPercent != null
+            && test.lastAttemptScore >= test.passingPercent;
+          return (
+            <Link href={`/practice/test/${test.id}${query}`} className="practice-test-row" key={test.id}>
+              <span className={test.completed ? "complete" : ""}>{test.completed ? <Check aria-hidden="true" /> : <ClipboardList aria-hidden="true" />}</span>
+              <div>
+                <h3>{test.title}</h3>
+                <p>{test.lastAttemptScore == null ? "Not attempted" : `Last attempt: ${test.lastAttemptScore}%${test.passingPercent == null ? "" : ` · Passing: ${test.passingPercent}%`}`}</p>
+              </div>
+              {test.lastAttemptScore != null ? <strong className={passed ? "passing" : ""}>{test.lastAttemptScore}%</strong> : null}
+              <ChevronRight aria-hidden="true" />
+            </Link>
+          );
+        })}
+        {!tests.length ? <p className="practice-no-tests">No tests were found in this classification.</p> : null}
+      </div>
+    </section>
+  );
 }

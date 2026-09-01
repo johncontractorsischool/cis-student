@@ -116,10 +116,12 @@ export function normalizePracticeIndex(
 function normalizeTest(raw: RawRecord, language: StudyLanguage): PracticeTestSummary | null {
   if (raw.id == null) return null;
   const lastScore = safeNumber(raw.last_attempt_score, -1);
+  const passing = safeNumber(raw.passing, -1);
   return {
     completed: enabled(raw.is_test_completed),
     id: String(raw.id),
     lastAttemptScore: lastScore < 0 ? null : lastScore,
+    passingPercent: passing < 0 ? null : Math.max(0, Math.min(100, passing)),
     title: localized(raw.tital, raw.title_es, language) || "Practice exam",
   };
 }

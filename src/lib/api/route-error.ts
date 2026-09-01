@@ -16,7 +16,6 @@ export function routeError(error: unknown): NextResponse {
     {
       error: {
         message: publicErrorMessage(error),
-        details: error instanceof ApiError ? error.details : undefined,
       },
     },
     { status },

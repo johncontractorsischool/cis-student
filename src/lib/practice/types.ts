@@ -21,6 +21,7 @@ export type PracticeTestSummary = {
   completed: boolean;
   id: string;
   lastAttemptScore: number | null;
+  passingPercent: number | null;
   title: string;
 };
 

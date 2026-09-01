@@ -13,12 +13,17 @@ type BackendRequestOptions = Omit<RequestInit, "body"> & {
   token?: string;
 };
 
+export type BackendResult<T> = {
+  data: T;
+  message?: string;
+};
+
 function makeUrl(path: string): string {
   const normalizedBase = env.API_BASE_URL.replace(/\/$/, "");
   return `${normalizedBase}/${path.replace(/^\//, "")}`;
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
+async function parseResponse<T>(response: Response): Promise<BackendResult<T>> {
   let payload: BackendEnvelope<T> | null = null;
 
   try {
@@ -43,13 +48,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
     throw new ApiError("The server returned an invalid response.", 502);
   }
 
-  return "data" in payload ? payload.data : (payload as T);
+  return {
+    data: "data" in payload ? payload.data : (payload as T),
+    message: typeof payload.message === "string" ? payload.message : undefined,
+  };
 }
 
 async function fetchOnce<T>(
   path: string,
   options: BackendRequestOptions,
-): Promise<T> {
+): Promise<BackendResult<T>> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
 
@@ -84,6 +92,23 @@ export async function backendRequest<T>(
   path: string,
   options: BackendRequestOptions = {},
 ): Promise<T> {
+  try {
+    return (await fetchOnce<T>(path, options)).data;
+  } catch (error) {
+    const status = error instanceof ApiError ? error.status : 0;
+    if (!options.retryTransientOnce || !TRANSIENT_STATUSES.has(status)) {
+      throw error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    return (await fetchOnce<T>(path, { ...options, retryTransientOnce: false })).data;
+  }
+}
+
+export async function backendRequestWithMessage<T>(
+  path: string,
+  options: BackendRequestOptions = {},
+): Promise<BackendResult<T>> {
   try {
     return await fetchOnce<T>(path, options);
   } catch (error) {

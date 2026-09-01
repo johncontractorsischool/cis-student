@@ -1,19 +1,24 @@
 import type { User } from "@/lib/api/types";
 import type { StudyProgressGroup } from "@/lib/domain/progress";
 import type {
+  DashboardAppSettings,
+  DeviceAccessState,
+  RenewalCheckoutCtas,
+} from "@/lib/dashboard/presentation";
+import type {
   IApplicationChecklistCollection,
   IApplicationDashboardData,
 } from "@/lib/iapplication/types";
 
 export type DashboardPayload = {
-  app: Record<string, unknown> | null;
+  app: DashboardAppSettings;
   deviceId: string;
-  deviceStatus: Record<string, unknown> | null;
+  deviceStatus: DeviceAccessState;
   liveClassStatus: unknown;
   iApplication: IApplicationDashboardData | null;
   iApplicationChecklists: IApplicationChecklistCollection | null;
   practice: Record<string, unknown> | null;
-  renewal: Record<string, unknown> | null;
+  renewal: RenewalCheckoutCtas;
   studyProgress: {
     law?: StudyProgressGroup;
     trade?: StudyProgressGroup;

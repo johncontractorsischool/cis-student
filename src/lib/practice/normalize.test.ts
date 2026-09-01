@@ -5,9 +5,9 @@ import { normalizePracticeIndex, normalizePracticeTestDetail, normalizePracticeT
 describe("practice-test normalization", () => {
   it("normalizes classifications and paid test lists", () => {
     const index = normalizePracticeIndex({ classes: [{ id: 12, test_category_id: 4, name: "General Building", total_count: 3, completed_count: 1 }], type: "practice_test" }, "en");
-    const list = normalizePracticeTestList({ tests: [{ id: 9, tital: "Exam 1", is_test_completed: true, last_attempt_score: 84 }] }, index.categories[0], "en");
+    const list = normalizePracticeTestList({ tests: [{ id: 9, tital: "Exam 1", is_test_completed: true, last_attempt_score: 84, passing: 75 }] }, index.categories[0], "en");
     expect(index.categories[0].title).toBe("General Building");
-    expect(list.tests[0]).toMatchObject({ completed: true, lastAttemptScore: 84, title: "Exam 1" });
+    expect(list.tests[0]).toMatchObject({ completed: true, lastAttemptScore: 84, passingPercent: 75, title: "Exam 1" });
   });
 
   it("sanitizes question HTML and uses backend timing and passing rules", () => {

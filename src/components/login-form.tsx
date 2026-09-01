@@ -30,14 +30,17 @@ export function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      const payload = (await response.json()) as { error?: { message?: string } };
+      const payload = (await response.json()) as {
+        data?: { nextPath?: "/dashboard" | "/first-login" };
+        error?: { message?: string };
+      };
 
       if (!response.ok) {
         setError(payload.error?.message || "Unable to sign in. Please try again.");
         return;
       }
 
-      router.replace("/dashboard");
+      router.replace(payload.data?.nextPath || "/dashboard");
       router.refresh();
     } catch {
       setError("Temporary network issue. Please try again.");
@@ -48,9 +51,10 @@ export function LoginForm() {
 
   return (
     <form className="auth-form" onSubmit={submit} noValidate>
-      <label>
+      <label htmlFor="login-email">
         Email address
         <input
+          id="login-email"
           type="email"
           autoComplete="email"
           inputMode="email"
@@ -60,10 +64,11 @@ export function LoginForm() {
           required
         />
       </label>
-      <label>
-        Password
+      <div className="auth-form-field">
+        <label htmlFor="login-password">Password</label>
         <span className="password-field">
           <input
+            id="login-password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             value={password}
@@ -80,7 +85,7 @@ export function LoginForm() {
             {showPassword ? "Hide" : "Show"}
           </button>
         </span>
-      </label>
+      </div>
       {error ? (
         <p className="form-error" id="login-error" role="alert">
           {error}
@@ -91,8 +96,8 @@ export function LoginForm() {
       </button>
       <div className="auth-links">
         <Link href="/forgot-password">Forgot password?</Link>
-        <Link href="/register">Create account</Link>
       </div>
+      <div className="legal-links"><Link href="/legal/terms">Terms</Link><Link href="/legal/privacy">Privacy</Link></div>
     </form>
   );
 }

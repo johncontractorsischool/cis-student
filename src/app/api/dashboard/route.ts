@@ -8,6 +8,11 @@ import { persistDeviceId, resolveDeviceId } from "@/lib/auth/device";
 import { authenticatedRequest } from "@/lib/auth/request";
 import { clearSession } from "@/lib/auth/session";
 import type { DashboardPayload } from "@/lib/dashboard/types";
+import {
+  normalizeDashboardApp,
+  normalizeDeviceAccess,
+  normalizeRenewalCheckoutCtas,
+} from "@/lib/dashboard/presentation";
 import { loadIApplicationDashboard } from "@/lib/iapplication/dashboard";
 import type { IApplicationChecklistCollection } from "@/lib/iapplication/types";
 
@@ -65,14 +70,14 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       data: {
-        app,
+        app: normalizeDashboardApp(app),
         deviceId,
-        deviceStatus,
+        deviceStatus: normalizeDeviceAccess(deviceStatus),
         iApplication,
         iApplicationChecklists,
         liveClassStatus,
         practice,
-        renewal,
+        renewal: normalizeRenewalCheckoutCtas(renewal),
         studyProgress,
         upgrades,
         user,
