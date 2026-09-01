@@ -10,6 +10,7 @@ const AREA_LABELS: Record<LearningArea, string> = {
   audio: "Audio Course",
   practice: "Practice Tests",
   reading: "Reading Course",
+  resources: "Resources",
   video: "Video Course",
 };
 

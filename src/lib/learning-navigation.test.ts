@@ -13,6 +13,8 @@ describe("learningAreaForPathname", () => {
     ["/reading/18/99", "reading"],
     ["/courses/audio", "audio"],
     ["/audio/18/99", "audio"],
+    ["/resources", "resources"],
+    ["/resources/18/report/99", "resources"],
   ])("maps %s to %s", (pathname, area) => {
     expect(learningAreaForPathname(pathname)).toBe(area);
   });
