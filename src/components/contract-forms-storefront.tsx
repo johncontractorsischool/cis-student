@@ -212,15 +212,16 @@ export function ContractFormsStorefront() {
                   <aside><strong>Important Notice:</strong>{product.notice}</aside>
                   <div className="contract-product-actions">
                     <strong>{money.format(product.price)}</strong>
-                    {productQuantity ? (
-                      <div className="contract-quantity" aria-label={`Quantity for ${product.title}`}>
-                        <button type="button" onClick={() => changeQuantity(product.id, -1)} aria-label={`Remove one ${product.title}`}><Minus aria-hidden="true" /></button>
-                        <span aria-live="polite">{productQuantity}</span>
-                        <button type="button" onClick={() => changeQuantity(product.id, 1)} aria-label={`Add one more ${product.title}`}><Plus aria-hidden="true" /></button>
-                      </div>
-                    ) : (
+                    <div className="contract-product-cart-actions">
                       <button className="contract-add-button" type="button" onClick={() => changeQuantity(product.id, 1)}><ShoppingCart aria-hidden="true" />Add to Cart</button>
-                    )}
+                      {productQuantity ? (
+                        <div className="contract-quantity" aria-label={`Quantity for ${product.title}`}>
+                          <button type="button" onClick={() => changeQuantity(product.id, -1)} aria-label={`Remove one ${product.title}`}><Minus aria-hidden="true" /></button>
+                          <span aria-live="polite">{productQuantity}</span>
+                          <button type="button" onClick={() => changeQuantity(product.id, 1)} aria-label={`Add one more ${product.title}`}><Plus aria-hidden="true" /></button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </article>
