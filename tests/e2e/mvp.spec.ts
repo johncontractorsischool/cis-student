@@ -1,8 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type BrowserContext } from "@playwright/test";
 
+const backendPort = process.env.E2E_BACKEND_PORT || "4111";
+
 async function resetBackend(request: APIRequestContext) {
-  await request.get("http://127.0.0.1:4011/__reset");
+  await request.get(`http://127.0.0.1:${backendPort}/__reset`);
 }
 
 async function addSession(context: BrowserContext, token = "fixture-active", expired = false) {
@@ -136,6 +138,50 @@ test("core learning destinations resolve for an entitled student", async ({ cont
     await page.goto(path);
     await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
   }
+});
+
+test("practice tests provide explanation videos and validated question feedback", async ({ context, page }) => {
+  await addSession(context);
+  await page.goto("/practice/12/4");
+  await page.getByRole("link", { name: /General Building Exam 1/ }).click();
+  await expect(page.getByRole("heading", { name: "General Building Exam 1" })).toBeVisible();
+  await expect(page.getByText("70%").last()).toBeVisible();
+  await page.getByRole("link", { name: "Start practice test" }).click();
+
+  await page.getByRole("radio", { name: /Two years/ }).click();
+  await page.getByRole("button", { name: "Submit answer" }).click();
+  await expect(page.getByText("Correct", { exact: true })).toBeVisible();
+
+  const videoTrigger = page.getByRole("button", { name: "Watch video explanation" });
+  await videoTrigger.click();
+  const videoDialog = page.getByRole("dialog", { name: "Why two years is correct" });
+  await expect(videoDialog).toBeVisible();
+  await expect(videoDialog.locator("video")).toHaveAttribute("src", `http://127.0.0.1:${backendPort}/explanation.mp4`);
+  await page.keyboard.press("Escape");
+  await expect(videoDialog).toBeHidden();
+  await expect(videoTrigger).toBeFocused();
+
+  await page.getByRole("button", { name: "Report this question" }).click();
+  const feedbackDialog = page.getByRole("dialog", { name: "Question feedback" });
+  await feedbackDialog.getByLabel("I disagree with this answer").check();
+  await feedbackDialog.getByLabel("Comment").fill("Please verify the renewal period.");
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations.filter(({ impact }) => impact === "critical" || impact === "serious")).toEqual([]);
+  await feedbackDialog.getByRole("button", { name: "Send feedback" }).click();
+  await expect(feedbackDialog.getByText("Thank you. Your feedback was submitted.")).toBeVisible();
+  await feedbackDialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  const invalidQuestion = await page.request.post("/api/practice/test/91/question/999/feedback", {
+    data: { comment: "This should not submit.", feedbackType: "other" },
+  });
+  expect(invalidQuestion.status()).toBe(404);
+});
+
+test("practice question feedback is hidden when disabled for the student", async ({ context, page }) => {
+  await addSession(context, "fixture-feedback-disabled");
+  await page.goto("/practice/test/91/attempt");
+  await expect(page.getByText("How often must this license be renewed?")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Report this question" })).toHaveCount(0);
 });
 
 test("dashboard has no serious accessibility violations", async ({ context, page }) => {
