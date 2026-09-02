@@ -62,6 +62,7 @@ export type PracticeTestDetail = {
   id: string;
   language: StudyLanguage;
   passingPercent: number;
+  questionFeedbackEnabled: boolean;
   questions: PracticeQuestion[];
   timeLimitSeconds: number;
   title: string;
@@ -78,9 +79,17 @@ export type PracticeResultData = {
   categoryTitle: string;
   correctCount: number;
   incorrectCount: number;
+  language: StudyLanguage;
   missedCount: number;
   passingPercent: number;
   percent: number;
+  questionFeedbackEnabled: boolean;
   testId: string;
   title: string;
+};
+
+export type PracticeVideoExplanation = {
+  thumbnailUrl: string;
+  title: string;
+  videoUrl: string;
 };

@@ -28,8 +28,12 @@ export async function GET(
       authenticatedRequest<User>("/account/me"),
     ]);
     if (user.customerid == null) throw new ApiError("Student account details are unavailable.", 403);
+    const normalized = normalizePracticeTestDetail(detail, history, language, String(user.customerid));
     return NextResponse.json({
-      data: normalizePracticeTestDetail(detail, history, language, String(user.customerid)),
+      data: {
+        ...normalized,
+        questionFeedbackEnabled: Number(user.question_feedback_disabled) !== 1,
+      },
     });
   } catch (error) {
     return routeError(error);

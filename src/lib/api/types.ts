@@ -28,6 +28,7 @@ export type User = Record<string, unknown> & {
   lname?: string;
   mobilenum?: string | null;
   name?: string;
+  question_feedback_disabled?: boolean | number | string;
   state?: string | null;
   test_date_law?: string | null;
   test_date_trade?: string | null;
