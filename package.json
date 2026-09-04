@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run src",
-    "test:e2e": "playwright test --grep-invert @staging",
+    "test:e2e": "playwright test --grep-invert '@staging|@production'",
+    "test:e2e:production": "playwright test --grep @production",
     "test:e2e:staging": "playwright test --grep @staging"
   },
   "dependencies": {

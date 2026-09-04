@@ -38,6 +38,7 @@ export function ContractFormsStorefront() {
   const router = useRouter();
   const productRefs = useRef<Record<string, HTMLElement | null>>({});
   const [products, setProducts] = useState<ContractFormProduct[]>([]);
+  const [checkoutBaseUrl, setCheckoutBaseUrl] = useState("");
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState("");
   const [cart, setCart] = useState<ContractFormsCart>({});
@@ -69,6 +70,7 @@ export function ContractFormsStorefront() {
       }
 
       setProducts(payload.data.products);
+      setCheckoutBaseUrl(payload.data.checkoutBaseUrl);
       setSelectedProductId(payload.data.products[0]?.id || "");
       setLoadState("ready");
     } catch (loadError) {
@@ -101,8 +103,8 @@ export function ContractFormsStorefront() {
   const cartCount = useMemo(() => getCartCount(cart), [cart]);
   const cartTotal = useMemo(() => getCartTotal(products, cart), [cart, products]);
   const checkoutUrl = useMemo(
-    () => getCheckoutUrl(getCartItems(products, cart)),
-    [cart, products],
+    () => getCheckoutUrl(getCartItems(products, cart), checkoutBaseUrl),
+    [cart, checkoutBaseUrl, products],
   );
 
   function changeQuantity(productId: string, amount: number) {
