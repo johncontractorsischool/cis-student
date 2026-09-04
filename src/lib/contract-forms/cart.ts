@@ -4,8 +4,6 @@ import type {
   ContractFormsCartItem,
 } from "@/lib/contract-forms/types";
 
-const SHOPIFY_DOMAIN = "https://www.lexanasignature.com";
-
 function quantity(value: number | undefined): number {
   return Number.isSafeInteger(value) && Number(value) > 0 ? Number(value) : 0;
 }
@@ -36,11 +34,26 @@ export function getCartTotal(
   );
 }
 
-export function getCheckoutUrl(items: readonly ContractFormsCartItem[]): string {
-  if (!items.length) return "";
+export function getCheckoutUrl(
+  items: readonly ContractFormsCartItem[],
+  checkoutBaseUrl: string,
+): string {
+  if (!items.length || !checkoutBaseUrl) return "";
+  let baseUrl: URL;
+  try {
+    baseUrl = new URL(checkoutBaseUrl);
+  } catch {
+    return "";
+  }
+  if (baseUrl.protocol !== "https:" && baseUrl.protocol !== "http:") return "";
+
   const lineItems = items
     .filter((item) => /^\d+$/.test(item.variantId) && quantity(item.quantity))
     .map((item) => `${item.variantId}:${quantity(item.quantity)}`)
     .join(",");
-  return lineItems ? `${SHOPIFY_DOMAIN}/cart/${lineItems}` : "";
+  if (!lineItems) return "";
+  baseUrl.pathname = `${baseUrl.pathname.replace(/\/$/, "")}/cart/${lineItems}`;
+  baseUrl.search = "";
+  baseUrl.hash = "";
+  return baseUrl.toString();
 }

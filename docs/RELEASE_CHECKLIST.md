@@ -26,7 +26,7 @@ None of these values should use the `NEXT_PUBLIC_` prefix. Protect the Productio
 - `npm run typecheck`
 - `npm run build`
 - `npm run test:e2e`
-- Run the `Staging smoke test` GitHub workflow with an existing, first-login-complete staging account.
+- Run `Deployed environment verification` with `target: staging`; all required accounts and integrations must pass.
 
 ## Role matrix
 
@@ -40,8 +40,9 @@ Record pass/fail and the test account identifier in the private release record. 
 | Expired student | Inactive content, expiration dates, backend-authored renewal checkout |
 | Unregistered browser | Register prompt, server-derived fingerprint, verified state after registration |
 | Three-device account | Blocking limit message and CIS phone link, no registration action |
-| Licensing account | Eligible Contract Forms and licensing journey status |
-| iApplication account | Overview/action center plus graceful partial outage behavior |
+| Contract Forms accounts | One eligible and one ineligible account prove the access boundary, configured storefront, variant existence, and current prices |
+| iApplication account | Overview and action center both load |
+| Partial iApplication outage | Exactly one dashboard feed fails while the surviving feed remains usable |
 
 ## Backend and browser proofs
 
@@ -60,4 +61,7 @@ Record pass/fail and the test account identifier in the private release record. 
 2. Confirm Vercel logs contain no secrets or protected response bodies.
 3. Promote the exact tested deployment to Production; do not rebuild a different commit.
 4. Run the active-student and expired-student smoke paths against Production.
-5. Retain the previous Vercel deployment. Roll back immediately for login/session failures, incorrect entitlement access, scoring mismatches, broken media seeking, or checkout misrouting.
+5. Run `Deployed environment verification` with `target: production`; it must remain read-only.
+6. Retain the previous Vercel deployment. Roll back immediately for login/session failures, incorrect entitlement access, scoring mismatches, broken media seeking, or checkout misrouting.
+
+See [Deployed environment verification](./DEPLOYED_VERIFICATION.md) for required GitHub Environment secrets, fixture preconditions, and safe execution details.
