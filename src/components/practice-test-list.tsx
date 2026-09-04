@@ -49,15 +49,15 @@ function TestGroup({ label, query, tests }: { label: string; query: string; test
             && test.passingPercent != null
             && test.lastAttemptScore >= test.passingPercent;
           return (
-            <Link href={`/practice/test/${test.id}${query}`} className="practice-test-row" key={test.id}>
+            <div className="practice-test-row" key={test.id}>
               <span className={test.completed ? "complete" : ""}>{test.completed ? <Check aria-hidden="true" /> : <ClipboardList aria-hidden="true" />}</span>
-              <div>
+              <Link className="practice-test-row-copy" href={`/practice/test/${test.id}${query}`}>
                 <h3>{test.title}</h3>
                 <p>{test.lastAttemptScore == null ? "Not attempted" : `Last attempt: ${test.lastAttemptScore}%${test.passingPercent == null ? "" : ` · Passing: ${test.passingPercent}%`}`}</p>
-              </div>
+              </Link>
               {test.lastAttemptScore != null ? <strong className={passed ? "passing" : ""}>{test.lastAttemptScore}%</strong> : null}
-              <ChevronRight aria-hidden="true" />
-            </Link>
+              <Link className="practice-quick-start" href={`/practice/test/${test.id}/attempt${query}`}>{test.lastAttemptScore == null ? "Start" : "Retry"}<ChevronRight aria-hidden="true" /></Link>
+            </div>
           );
         })}
         {!tests.length ? <p className="practice-no-tests">No tests were found in this classification.</p> : null}

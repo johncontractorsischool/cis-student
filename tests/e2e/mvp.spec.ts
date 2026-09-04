@@ -128,6 +128,7 @@ test("device registration, device limits, and session refresh are enforced", asy
 test("core learning destinations resolve for an entitled student", async ({ context, page }) => {
   await addSession(context);
   const destinations = [
+    ["/courses", "Courses"],
     ["/practice", "Practice tests"],
     ["/courses/video", "Video courses"],
     ["/courses/reading", "Law and Business"],
@@ -146,7 +147,9 @@ test("practice tests provide explanation videos and validated question feedback"
   await page.getByRole("link", { name: /General Building Exam 1/ }).click();
   await expect(page.getByRole("heading", { name: "General Building Exam 1" })).toBeVisible();
   await expect(page.getByText("70%").last()).toBeVisible();
-  await page.getByRole("link", { name: "Start practice test" }).click();
+  await page.getByRole("link", { name: "Try this test again" }).click();
+
+  await expect(page.getByRole("button", { name: "End test" })).toHaveCount(1);
 
   await page.getByRole("radio", { name: /Two years/ }).click();
   await page.getByRole("button", { name: "Submit answer" }).click();
@@ -171,10 +174,34 @@ test("practice tests provide explanation videos and validated question feedback"
   await expect(feedbackDialog.getByText("Thank you. Your feedback was submitted.")).toBeVisible();
   await feedbackDialog.getByRole("button", { name: "Close", exact: true }).click();
 
+  await page.getByRole("button", { name: "Finish test" }).click();
+  await expect(page).toHaveURL(/\/practice\/test\/91\/result/);
+  await expect(page.getByRole("group", { name: "Filter answer review" })).toBeVisible();
+
   const invalidQuestion = await page.request.post("/api/practice/test/91/question/999/feedback", {
     data: { comment: "This should not submit.", feedbackType: "other" },
   });
   expect(invalidQuestion.status()).toBe(404);
+});
+
+test("practice result route falls back to saved attempt history", async ({ context, page }) => {
+  await addSession(context);
+  await page.goto("/practice/test/91/result");
+  await expect(page.getByRole("heading", { name: "Latest score: 70%" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View test history" })).toBeVisible();
+});
+
+test("course players keep the lesson outline within reach", async ({ context, page }) => {
+  await addSession(context);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/videos/watch/201");
+  await expect(page.getByRole("heading", { name: "License renewal" })).toBeVisible();
+  await expect(page.locator(".player-lesson-sidebar").getByRole("navigation", { name: "Course lessons" })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/audio/12/301");
+  await expect(page.getByText("License renewal audio", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".player-lesson-drawer")).toBeVisible();
 });
 
 test("practice question feedback is hidden when disabled for the student", async ({ context, page }) => {
@@ -190,4 +217,21 @@ test("dashboard has no serious accessibility violations", async ({ context, page
   await expect(page.getByRole("heading", { name: "Fixture Student" })).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter(({ impact }) => impact === "critical" || impact === "serious")).toEqual([]);
+});
+
+test("responsive student navigation keeps core destinations within one tap", async ({ context, page }) => {
+  await addSession(context);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("navigation", { name: "Student navigation" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continue practicing" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your licensing journey" })).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Courses" }).click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.getByRole("heading", { name: "Courses" })).toBeVisible();
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Account" }).click();
+  await expect(page.getByRole("button", { name: "Sign out of ExamPrep" })).toBeVisible();
 });

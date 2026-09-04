@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import type { StudyLanguage, VideoLessonDetail } from "@/lib/study/types";
+import { CourseLessonNavigation } from "@/components/course-lesson-navigation";
+import type { MediaCourse, StudyLanguage, VideoLessonDetail } from "@/lib/study/types";
 
 export function VideoPlayer({ language, videoId }: { language: StudyLanguage; videoId: string }) {
   const router = useRouter();
   const [detail, setDetail] = useState<VideoLessonDetail | null>(null);
+  const [course, setCourse] = useState<MediaCourse | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -22,6 +24,9 @@ export function VideoPlayer({ language, videoId }: { language: StudyLanguage; vi
         if (response.status === 401) return router.replace("/login");
         if (!response.ok || !payload.data) throw new Error(payload.error?.message || "Unable to load this video.");
         setDetail(payload.data);
+        const courseResponse = await fetch(`/api/videos/${encodeURIComponent(payload.data.classId)}${payload.data.language === "es" ? "?l=es" : ""}`, { cache: "no-store", signal: controller.signal });
+        const coursePayload = (await courseResponse.json()) as { data?: MediaCourse };
+        if (courseResponse.ok && coursePayload.data) setCourse(coursePayload.data);
       } catch (loadError) {
         if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : "Unable to load this video.");
       }
@@ -54,10 +59,11 @@ export function VideoPlayer({ language, videoId }: { language: StudyLanguage; vi
   return (
     <div className="player-page">
       <header className="study-topbar"><Link href={`/videos/${detail.classId}${query}`} aria-label="Back to video course"><ArrowLeft aria-hidden="true" /></Link><div><span>Video lesson</span><strong>{detail.title}</strong></div><span className="reading-language-badge">{detail.language.toUpperCase()}</span></header>
-      <main className="player-main">
+      <main className="player-main player-main-with-outline">
+        {course ? <CourseLessonNavigation currentId={detail.id} hrefFor={(id) => `/videos/watch/${id}${query}`} sections={course.sections} /> : null}
         <section className="player-card">
           <div className="video-stage">
-            {detail.asset.videoUrl && !detail.asset.redirect ? <video controls playsInline poster={detail.asset.thumbnailUrl || undefined} src={detail.asset.videoUrl} onEnded={() => void complete(true)} /> : <div className="external-media"><PlayCircle aria-hidden="true" /><h1>{detail.title}</h1><p>This lesson opens in the school’s secure video viewer.</p>{detail.asset.redirectUrl ? <a href={detail.asset.redirectUrl} target="_blank" rel="noreferrer">Open video <ExternalLink aria-hidden="true" /></a> : null}</div>}
+            {detail.asset.videoUrl && !detail.asset.redirect ? <video controls playsInline poster={detail.asset.thumbnailUrl || undefined} src={detail.asset.videoUrl} onEnded={() => void complete(true)} /> : <div className="external-media"><PlayCircle aria-hidden="true" /><strong className="external-media-title">{detail.title}</strong><p>This lesson opens in the school’s secure video viewer.</p>{detail.asset.redirectUrl ? <a href={detail.asset.redirectUrl} target="_blank" rel="noreferrer">Open video <ExternalLink aria-hidden="true" /></a> : null}</div>}
           </div>
           <div className="player-copy"><p>Course video</p><h1>{detail.title}</h1>{error ? <span className="player-error">{error}</span> : null}</div>
           <nav className="player-navigation" aria-label="Video navigation">

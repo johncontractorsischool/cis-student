@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronRight, Clock3, Flag, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Clock3, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -130,7 +130,7 @@ export function PracticeExam({ language, testId }: { language: StudyLanguage; te
       <div className="exam-progress"><span style={{ width: `${percent}%` }} /></div>
       <main className="exam-main">
         <section className="exam-question-card">
-          <header><span>Question {index + 1}</span><button onClick={() => { if (window.confirm("End this test now?")) void finish(); }}><Flag aria-hidden="true" />End test</button></header>
+          <header><span>Question {index + 1}</span></header>
           <div className="practice-rich-html exam-question" dangerouslySetInnerHTML={{ __html: question.html }} />
           <div className="exam-answers" role="radiogroup" aria-label="Answer choices">
             {question.answers.map((answer) => {
