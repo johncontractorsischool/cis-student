@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { CourseLessonNavigation } from "@/components/course-lesson-navigation";
 import type { AudioCourse, StudyLanguage } from "@/lib/study/types";
 
 export function AudioPlayer({ audioId, classId, language }: { audioId: string; classId: string; language: StudyLanguage }) {
@@ -76,7 +77,7 @@ export function AudioPlayer({ audioId, classId, language }: { audioId: string; c
   return (
     <div className="player-page audio-player-page">
       <header className="study-topbar"><Link href={`/audio/${classId}${query}`} aria-label="Back to audio course"><ArrowLeft aria-hidden="true" /></Link><div><span>Audio lesson</span><strong>{lesson.title}</strong></div><span className="reading-language-badge">{course.language.toUpperCase()}</span></header>
-      <main className="player-main"><section className="audio-player-card"><div className="audio-art"><span><Headphones aria-hidden="true" /></span><p>Now playing</p><h1>{lesson.title}</h1><small>{course.title}</small></div><audio ref={audioRef} controls preload="metadata" src={lesson.sourceUrl} onEnded={() => void complete(true)} /><div className="audio-jump-controls"><button onClick={() => jump(-15)}><RotateCcw aria-hidden="true" />15 sec</button><button onClick={() => jump(15)}>15 sec<RotateCw aria-hidden="true" /></button></div>{error ? <span className="player-error">{error}</span> : null}<nav className="player-navigation" aria-label="Audio navigation">{lesson.previousId ? <Link href={`/audio/${classId}/${lesson.previousId}${query}`}><ChevronLeft aria-hidden="true" />Previous audio</Link> : <span />}<button onClick={() => void complete(true)} disabled={saving}><Check aria-hidden="true" />{saving ? "Saving…" : lesson.nextId ? "Complete & next" : "Complete course"}<ChevronRight aria-hidden="true" /></button></nav></section></main>
+      <main className="player-main player-main-with-outline"><CourseLessonNavigation currentId={lesson.id} hrefFor={(id) => `/audio/${classId}/${id}${query}`} sections={course.sections} /><section className="audio-player-card"><div className="audio-art"><span><Headphones aria-hidden="true" /></span><p>Now playing</p><h1>{lesson.title}</h1><small>{course.title}</small></div><audio ref={audioRef} controls preload="metadata" src={lesson.sourceUrl} onEnded={() => void complete(true)} /><div className="audio-jump-controls"><button onClick={() => jump(-15)}><RotateCcw aria-hidden="true" />15 sec</button><button onClick={() => jump(15)}>15 sec<RotateCw aria-hidden="true" /></button></div>{error ? <span className="player-error">{error}</span> : null}<nav className="player-navigation" aria-label="Audio navigation">{lesson.previousId ? <Link href={`/audio/${classId}/${lesson.previousId}${query}`}><ChevronLeft aria-hidden="true" />Previous audio</Link> : <span />}<button onClick={() => void complete(true)} disabled={saving}><Check aria-hidden="true" />{saving ? "Saving…" : lesson.nextId ? "Complete & next" : "Complete course"}<ChevronRight aria-hidden="true" /></button></nav></section></main>
     </div>
   );
 }

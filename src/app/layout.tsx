@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { LearningNavigation } from "@/components/learning-navigation";
+import { StudentShell } from "@/components/student-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,8 +13,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <Suspense fallback={null}><LearningNavigation /></Suspense>
-        {children}
+        <Suspense fallback={null}><StudentShell>{children}</StudentShell></Suspense>
       </body>
     </html>
   );

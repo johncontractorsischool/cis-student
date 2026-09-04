@@ -2,12 +2,15 @@ import { spawn } from "node:child_process";
 
 import { startMockBackend } from "./support/mock-backend.mjs";
 
-const backend = await startMockBackend(4011);
-const next = spawn("npm", ["run", "dev", "--", "--hostname", "127.0.0.1"], {
+const appPort = process.env.E2E_APP_PORT || "3100";
+const backendPort = Number(process.env.E2E_BACKEND_PORT || "4111");
+const backend = await startMockBackend(backendPort);
+const next = spawn("npm", ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", appPort], {
   env: {
     ...process.env,
-    API_BASE_URL: "http://127.0.0.1:4011/api/v2",
+    API_BASE_URL: `http://127.0.0.1:${backendPort}/api/v2`,
     CIS_API_KEY: "fixture-cis-key",
+    E2E_BACKEND_PORT: String(backendPort),
   },
   stdio: "inherit",
 });

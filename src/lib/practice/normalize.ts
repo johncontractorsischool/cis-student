@@ -8,6 +8,7 @@ import type {
   PracticeTestDetail,
   PracticeTestList,
   PracticeTestSummary,
+  PracticeVideoExplanation,
 } from "@/lib/practice/types";
 import type { StudyLanguage } from "@/lib/study/types";
 
@@ -28,6 +29,10 @@ export type RawPracticeDetailPayload = {
   test?: RawRecord;
 };
 
+export type RawPracticeVideoPayload = {
+  video?: RawRecord;
+};
+
 type RawHistoryPayload = { attempt_history?: RawRecord[] };
 
 function hasText(value: unknown): value is string {
@@ -46,6 +51,16 @@ function enabled(value: unknown): boolean {
 function safeNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function safeWebUrl(value: unknown): string {
+  if (!hasText(value)) return "";
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 export function sanitizePracticeHtml(html: unknown): string {
@@ -201,8 +216,25 @@ export function normalizePracticeTestDetail(
     id: String(test.id),
     language,
     passingPercent: Math.max(0, Math.min(100, safeNumber(test.passing, 80))),
+    questionFeedbackEnabled: true,
     questions,
     timeLimitSeconds: hours > 0 ? Math.round(hours * 60 * 60) : 12_600,
     title: localized(test.tital, test.title_es, language) || "Practice exam",
+  };
+}
+
+export function normalizePracticeVideoExplanation(
+  payload: RawPracticeVideoPayload,
+): PracticeVideoExplanation | null {
+  const video = payload.video || {};
+  const asset = video.mp4_video && typeof video.mp4_video === "object"
+    ? video.mp4_video as RawRecord
+    : {};
+  const videoUrl = safeWebUrl(asset.video_url);
+  if (!videoUrl) return null;
+  return {
+    thumbnailUrl: safeWebUrl(asset.video_thumb),
+    title: hasText(video.name) ? video.name.trim() : "Video explanation",
+    videoUrl,
   };
 }

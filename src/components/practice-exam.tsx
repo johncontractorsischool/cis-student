@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronRight, Clock3, Flag, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Clock3, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { PracticeQuestionTools } from "@/components/practice-question-tools";
 import type { PracticeAnswer, PracticeResultData, PracticeTestDetail } from "@/lib/practice/types";
 import type { StudyLanguage } from "@/lib/study/types";
 
@@ -67,7 +68,7 @@ export function PracticeExam({ language, testId }: { language: StudyLanguage; te
     const missedCount = answers.filter((answer) => answer.answer === null).length;
     const incorrectCount = answers.length - correctCount - missedCount;
     const percent = Number(((correctCount / answers.length) * 100).toFixed(2));
-    const result: PracticeResultData = { answers, categoryTitle: detail.categoryTitle, correctCount, incorrectCount, missedCount, passingPercent: detail.passingPercent, percent, testId: detail.id, title: detail.title };
+    const result: PracticeResultData = { answers, categoryTitle: detail.categoryTitle, correctCount, incorrectCount, language: detail.language, missedCount, passingPercent: detail.passingPercent, percent, questionFeedbackEnabled: detail.questionFeedbackEnabled, testId: detail.id, title: detail.title };
     try {
       const response = await fetch(`/api/practice/test/${encodeURIComponent(detail.id)}/result`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ score: percent }) });
       const payload = (await response.json()) as { error?: { message?: string } };
@@ -129,7 +130,7 @@ export function PracticeExam({ language, testId }: { language: StudyLanguage; te
       <div className="exam-progress"><span style={{ width: `${percent}%` }} /></div>
       <main className="exam-main">
         <section className="exam-question-card">
-          <header><span>Question {index + 1}</span><button onClick={() => { if (window.confirm("End this test now?")) void finish(); }}><Flag aria-hidden="true" />End test</button></header>
+          <header><span>Question {index + 1}</span></header>
           <div className="practice-rich-html exam-question" dangerouslySetInnerHTML={{ __html: question.html }} />
           <div className="exam-answers" role="radiogroup" aria-label="Answer choices">
             {question.answers.map((answer) => {
@@ -140,6 +141,14 @@ export function PracticeExam({ language, testId }: { language: StudyLanguage; te
             })}
           </div>
           {isSubmitted ? <div className={`exam-feedback ${chosen === question.correctAnswer ? "correct" : "wrong"}`}><strong>{chosen === question.correctAnswer ? "Correct" : `The correct answer is ${question.correctAnswer}`}</strong>{question.explanationHtml ? <div className="practice-rich-html" dangerouslySetInnerHTML={{ __html: question.explanationHtml }} /> : <p>Continue to the next question when you’re ready.</p>}</div> : null}
+          <PracticeQuestionTools
+            feedbackEnabled={detail.questionFeedbackEnabled}
+            language={detail.language}
+            questionId={question.id}
+            showVideo={isSubmitted}
+            testId={detail.id}
+            videoExplanationId={question.videoExplanationId}
+          />
           {error ? <p className="player-error">{error}</p> : null}
           <footer>
             {!isSubmitted ? <button className="exam-primary-action" disabled={!chosen || finishing} onClick={() => setSubmitted((current) => ({ ...current, [question.id]: true }))}>Submit answer</button> : index < detail.questions.length - 1 ? <button className="exam-primary-action" onClick={() => setIndex((value) => value + 1)}>Next question <ChevronRight aria-hidden="true" /></button> : <button className="exam-primary-action" disabled={finishing} onClick={() => void finish()}>{finishing ? "Saving result…" : "Finish test"}<ChevronRight aria-hidden="true" /></button>}

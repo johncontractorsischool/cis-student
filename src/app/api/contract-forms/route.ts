@@ -7,6 +7,7 @@ import { authenticatedRequest } from "@/lib/auth/request";
 import { CONTRACT_FORM_PRODUCTS } from "@/lib/contract-forms/catalog";
 import type { ContractFormsPayload } from "@/lib/contract-forms/types";
 import { isDemoAccount } from "@/lib/domain/demo";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export async function GET() {
 
     return NextResponse.json({
       data: {
+        checkoutBaseUrl: env.SHOPIFY_DOMAIN,
         products: [...CONTRACT_FORM_PRODUCTS],
       } satisfies ContractFormsPayload,
     });

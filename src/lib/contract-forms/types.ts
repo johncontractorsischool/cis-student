@@ -14,6 +14,7 @@ export type ContractFormProduct = {
 };
 
 export type ContractFormsPayload = {
+  checkoutBaseUrl: string;
   products: ContractFormProduct[];
 };
 

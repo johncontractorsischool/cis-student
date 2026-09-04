@@ -140,6 +140,7 @@ export function FirstLogin({
     return (
       <main className="first-login-page">
         <section className="prescreen-card" aria-labelledby="prescreen-title">
+          <FirstLoginProgress current="prescreen" />
           <p className="eyebrow">Application setup</p>
           <h1 id="prescreen-title">Do you already hold a California contractor license?</h1>
           <p>Choose Yes for an additional classification or No for your first original license.</p>
@@ -158,6 +159,7 @@ export function FirstLogin({
     return (
       <main className="first-login-page">
         <form className="prescreen-card first-login-form" onSubmit={changeTemporaryPassword}>
+          <FirstLoginProgress current="password" />
           <p className="eyebrow">Secure your account</p>
           <h1>Change your temporary password</h1>
           <p>Use the password you signed in with as your current password.</p>
@@ -176,6 +178,7 @@ export function FirstLogin({
     return (
       <main className="first-login-page">
         <form className="agreement-card first-login-profile" onSubmit={completeProfile}>
+          <FirstLoginProgress current="profile" />
           <header><p className="eyebrow">Final step</p><h1>Confirm your student profile</h1><p>Keep your contact information current for course and licensing support.</p></header>
           <div className="account-form-grid">
             <label>First name<input value={profile.firstName} onChange={(event) => setProfile({ ...profile, firstName: event.target.value })} required /></label>
@@ -196,6 +199,7 @@ export function FirstLogin({
   return (
     <main className="first-login-page">
       <section className="agreement-card" aria-labelledby="agreement-title">
+        <FirstLoginProgress current="agreement" />
         <header><p className="eyebrow">Required before continuing</p><h1 id="agreement-title">Student enrollment agreement</h1><p>Please review and accept the agreement to access ExamPrep.</p></header>
         <div className="agreement-body" dangerouslySetInnerHTML={{ __html: agreementHtml }} />
         <footer>
@@ -206,5 +210,20 @@ export function FirstLogin({
         </footer>
       </section>
     </main>
+  );
+}
+
+function FirstLoginProgress({ current }: { current: StableStep }) {
+  const steps: Array<{ id: StableStep; label: string }> = [
+    { id: "agreement", label: "Agreement" },
+    { id: "prescreen", label: "Prescreen" },
+    { id: "password", label: "Password" },
+    { id: "profile", label: "Profile" },
+  ];
+  const currentIndex = steps.findIndex((item) => item.id === current);
+  return (
+    <ol className="first-login-progress" aria-label="Account setup progress">
+      {steps.map((item, index) => <li className={index < currentIndex ? "complete" : index === currentIndex ? "current" : ""} aria-current={index === currentIndex ? "step" : undefined} key={item.id}><span>{index < currentIndex ? "✓" : index + 1}</span><small>{item.label}</small></li>)}
+    </ol>
   );
 }

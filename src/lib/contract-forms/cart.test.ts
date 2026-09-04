@@ -44,12 +44,21 @@ describe("contract forms cart", () => {
   });
 
   it("builds the Shopify cart permalink used by ExamPrep", () => {
-    expect(getCheckoutUrl(getCartItems(products, { first: 2, second: 1 }))).toBe(
-      "https://www.lexanasignature.com/cart/111:2,222:1",
+    expect(getCheckoutUrl(
+      getCartItems(products, { first: 2, second: 1 }),
+      "https://shop.example.com/store/",
+    )).toBe(
+      "https://shop.example.com/store/cart/111:2,222:1",
     );
   });
 
   it("does not produce a checkout URL for an empty cart", () => {
-    expect(getCheckoutUrl([])).toBe("");
+    expect(getCheckoutUrl([], "https://shop.example.com")).toBe("");
+  });
+
+  it("rejects unsafe or missing storefront destinations", () => {
+    const items = getCartItems(products, { first: 1 });
+    expect(getCheckoutUrl(items, "javascript:alert(1)")).toBe("");
+    expect(getCheckoutUrl(items, "")).toBe("");
   });
 });

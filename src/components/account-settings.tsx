@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   KeyRound,
   Languages,
+  LogOut,
   RefreshCcw,
   Save,
   ShieldAlert,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import type { AccountProfile } from "@/lib/account/presentation";
 import { US_STATES } from "@/lib/account/states";
@@ -41,6 +42,10 @@ export function AccountSettings({ initialProfile }: { initialProfile: AccountPro
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteNotice, setDeleteNotice] = useState<Notice>(null);
+
+  useEffect(() => {
+    document.documentElement.lang = profile.language;
+  }, [profile.language]);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,8 +160,15 @@ export function AccountSettings({ initialProfile }: { initialProfile: AccountPro
         <div><p>Student settings</p><h1>My Account</h1><strong>{profile.email}</strong></div>
       </header>
 
+      <nav className="account-section-nav" aria-label="Account sections">
+        <a href="#profile">Profile</a>
+        <a href="#language">Language</a>
+        <a href="#security">Security</a>
+        <a href="#exam-data">Exam data</a>
+      </nav>
+
       <div className="account-layout">
-        <form className="account-card account-profile-card" onSubmit={saveProfile}>
+        <form className="account-card account-profile-card" id="profile" onSubmit={saveProfile}>
           <AccountCardHeading icon={UserRound} title="Profile information" description="Keep your contact details current." />
           <div className="account-form-grid">
             <label>First name<input value={profile.firstName} onChange={(event) => setProfile({ ...profile, firstName: event.target.value })} required /></label>
@@ -173,7 +185,7 @@ export function AccountSettings({ initialProfile }: { initialProfile: AccountPro
         </form>
 
         <div className="account-side">
-          <section className="account-card">
+          <section className="account-card" id="language">
             <AccountCardHeading icon={Languages} title="Language" description="Persist your preferred course language." />
             <div className="account-language" role="group" aria-label="Preferred language">
               <button className={profile.language === "en" ? "selected" : ""} disabled={languageSaving} onClick={() => void changeLanguage("en")}>English</button>
@@ -182,7 +194,7 @@ export function AccountSettings({ initialProfile }: { initialProfile: AccountPro
             <AccountNotice notice={languageNotice} />
           </section>
 
-          <form className="account-card" onSubmit={changePassword}>
+          <form className="account-card" id="security" onSubmit={changePassword}>
             <AccountCardHeading icon={KeyRound} title="Change password" description="Use at least six characters with a letter and number." />
             <div className="account-password-fields">
               <label>Current password<input name="currentPassword" type="password" autoComplete="current-password" required /></label>
@@ -193,7 +205,7 @@ export function AccountSettings({ initialProfile }: { initialProfile: AccountPro
             <button className="account-action" type="submit" disabled={passwordSaving}><KeyRound aria-hidden="true" />{passwordSaving ? "Updating…" : "Update password"}</button>
           </form>
 
-          <section className="account-card account-danger-card">
+          <section className="account-card account-danger-card" id="exam-data">
             <AccountCardHeading icon={RefreshCcw} title="Reset completed exams" description="Clear completed tests and attempt history so you can start again." />
             <AccountNotice notice={resetNotice} />
             <button className="account-secondary-action" type="button" disabled={resetting} onClick={() => void resetExams()}><RefreshCcw aria-hidden="true" />{resetting ? "Resetting…" : "Reset exams"}</button>
@@ -207,6 +219,11 @@ export function AccountSettings({ initialProfile }: { initialProfile: AccountPro
               <button className="account-delete-action" type="button" disabled={deleteConfirmation !== "DELETE" || deleting} onClick={() => void deleteAccount()}><ShieldAlert aria-hidden="true" />{deleting ? "Deleting…" : "Delete account"}</button>
             </section>
           ) : null}
+
+          <form className="account-card account-signout-card" action="/api/auth/logout" method="post">
+            <AccountCardHeading icon={LogOut} title="Sign out" description="End your session securely on this device." />
+            <button className="account-secondary-action" type="submit"><LogOut aria-hidden="true" />Sign out of ExamPrep</button>
+          </form>
         </div>
       </div>
     </main>

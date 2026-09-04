@@ -42,6 +42,7 @@ function fixtureUser(token) {
     lname: "Student",
     mobilenum: "9165551212",
     name: "Fixture",
+    question_feedback_disabled: token === "fixture-feedback-disabled" ? 1 : 0,
     state: "CA",
     zip: "95814",
     ...(profiles.get(token) || {}),
@@ -117,10 +118,47 @@ export function startMockBackend(port) {
     if (path === "/live_class_status") return data(response, { live_class_status: 0 });
     if (path === "/study_progress") return data(response, { law: { exams: { completed: 1, total: 4 }, videos: { completed: 2, total: 6 } }, trade: { exams: { completed: 0, total: 4 }, videos: { completed: 0, total: 6 } } });
     if (path === "/practice_test_classes/opt") return data(response, { type: "practice_test", classes: [{ id: 12, test_category_id: 4, name: "General Building", total_count: 3, completed_count: 1 }] });
+    if (path === "/get_practice_tests/12/4") return data(response, {
+      safetyTests: [],
+      tests: [{ id: 91, is_test_completed: false, last_attempt_score: 70, passing: 75, tital: "General Building Exam 1" }],
+    });
+    if (path === "/practice_test_details/91") return data(response, {
+      questions: [{
+        ans1: "One year",
+        ans2: "Two years",
+        ans3: "Three years",
+        ans4: "Four years",
+        correct: "B",
+        explanation: "<p>The correct renewal period is <strong>two years</strong>.</p>",
+        id: 501,
+        ques: "<p>How often must this license be renewed?</p>",
+        test_title_id: 91,
+        video_explanation: 701,
+      }],
+      test: { category: { name: "General Building" }, id: 91, number_of_marks: 1, passing: 75, timing: 1, tital: "General Building Exam 1" },
+    });
+    if (path === "/exam_attempt/history/91") return data(response, { attempt_history: [{ date: "Sep 1, 2026", id: 1, score: 70 }] });
+    if (path === "/practice_test_video_explanations/701") return data(response, {
+      video: {
+        mp4_video: { video_thumb: `http://127.0.0.1:${port}/explanation.jpg`, video_url: `http://127.0.0.1:${port}/explanation.mp4` },
+        name: "Why two years is correct",
+      },
+    });
+    if (path === "/practice_test_question_feedback" && method === "POST") {
+      const input = await body(request);
+      if (input.feedback_type !== "disagree" || input.feedback_comment !== "Please verify the renewal period." || input.question_id !== "501" || input.test_id !== "91" || input.platform !== "web") {
+        return json(response, 422, { error: { code: 422, message: "Unexpected feedback payload" } });
+      }
+      return data(response, { submitted: true }, "Feedback received.");
+    }
+    if (path === "/exam_attempt/save/91/100.00") return data(response, { saved: true });
     if (path === "/renewal-checkout-ctas") return data(response, { type: "renewal", expires_at: "2026-08-01", buttons: [{ label: "Renew 30 days", url: "https://checkout.example.com/renew" }] });
     if (path === "/iapplication/application-checklists") return data(response, { applications: [] });
     if (path.startsWith("/ai_forms/customers/")) return notFound(response);
     if (path === "/courses/video" || path === "/courses/audio") return data(response, { active_courses: [{ id: 1, clas_id: 12, completed_count: 1, total_count: 3, reading_classification: { id: 12, Class_code: "B", Class_description: "General Building" } }], expired_courses: [] });
+    if (path === "/video_courses/12") return data(response, { videos: [{ id: 1, name: "Core lessons", sub_chapters: [{ id: 201, name: "License renewal", video_id: 201, watched: false }] }] });
+    if (path === "/video_courses_detail/201") return data(response, { nextVideoId: null, previousVideoId: null, video: { clas_id: 12, id: 201, mp4_video: { redirect: 1, redirect_url: "https://example.com/video" }, name: "License renewal" } });
+    if (path === "/audio_courses_batch/12") return data(response, { audios: [{ id: 2, name: "Audio lessons", sub_chapters: [{ audio: { audio_path: `http://127.0.0.1:${port}/lesson.mp3`, description: "License renewal audio" }, audio_id: 301, id: 301, watched: false }] }] });
     if (path === "/courses/reading") return data(response, { active_courses: [{ id: 1, reading_classification: { id: 44, Class_code: "LAW", Class_description: "Law and Business" } }] });
     if (path === "/reading_courses_with_detail/44") return data(response, { reading_courses: { category_1: { id: 1, title: "Getting started", chapters: { content_10: { id: 10, title: "Introduction", type: "content", read: false } } } }, reading_courses_contents: [{ id: 10, title: "Introduction", content: "<p>Welcome to the course.</p>" }] });
     if (path === "/live_classes_test") return data(response, { videos: [{ id: 1, Class_description: "General Building", live_class_videos: [{ id: 10, name: "Recorded class", status: "archive" }] }] });

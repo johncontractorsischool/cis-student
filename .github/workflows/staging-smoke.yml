@@ -1,16 +1,29 @@
-name: Staging smoke test
+name: Deployed environment verification
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to verify
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
 
 permissions:
   contents: read
 
+concurrency:
+  group: deployed-verification-${{ inputs.target }}
+  cancel-in-progress: false
+
 jobs:
-  smoke:
-    environment: staging
+  verify:
+    environment: ${{ inputs.target }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,8 +32,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e:staging -- --project=desktop-chromium
+      - name: Run staging account matrix and integration verification
+        if: inputs.target == 'staging'
+        run: npm run test:e2e:staging -- --project=desktop-chromium
+      - name: Run read-only production integration verification
+        if: inputs.target == 'production'
+        run: npm run test:e2e:production -- --project=desktop-chromium
         env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          E2E_STAGING_EMAIL: ${{ secrets.E2E_STAGING_EMAIL }}
-          E2E_STAGING_PASSWORD: ${{ secrets.E2E_STAGING_PASSWORD }}
+          E2E_TARGET: production
+    env:
+      CI: true
+      E2E_ACCOUNTS_JSON: ${{ secrets.E2E_ACCOUNTS_JSON }}
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_EXPECTED_RENEWAL_HOSTS: ${{ vars.E2E_EXPECTED_RENEWAL_HOSTS }}
+      E2E_EXPECTED_SHOPIFY_HOST: ${{ vars.E2E_EXPECTED_SHOPIFY_HOST }}
+      E2E_TARGET: staging
