@@ -156,6 +156,9 @@ export function startMockBackend(port) {
     if (path === "/iapplication/application-checklists") return data(response, { applications: [] });
     if (path.startsWith("/ai_forms/customers/")) return notFound(response);
     if (path === "/courses/video" || path === "/courses/audio") return data(response, { active_courses: [{ id: 1, clas_id: 12, completed_count: 1, total_count: 3, reading_classification: { id: 12, Class_code: "B", Class_description: "General Building" } }], expired_courses: [] });
+    if (path === "/video_courses/12") return data(response, { videos: [{ id: 1, name: "Core lessons", sub_chapters: [{ id: 201, name: "License renewal", video_id: 201, watched: false }] }] });
+    if (path === "/video_courses_detail/201") return data(response, { nextVideoId: null, previousVideoId: null, video: { clas_id: 12, id: 201, mp4_video: { redirect: 1, redirect_url: "https://example.com/video" }, name: "License renewal" } });
+    if (path === "/audio_courses_batch/12") return data(response, { audios: [{ id: 2, name: "Audio lessons", sub_chapters: [{ audio: { audio_path: `http://127.0.0.1:${port}/lesson.mp3`, description: "License renewal audio" }, audio_id: 301, id: 301, watched: false }] }] });
     if (path === "/courses/reading") return data(response, { active_courses: [{ id: 1, reading_classification: { id: 44, Class_code: "LAW", Class_description: "Law and Business" } }] });
     if (path === "/reading_courses_with_detail/44") return data(response, { reading_courses: { category_1: { id: 1, title: "Getting started", chapters: { content_10: { id: 10, title: "Introduction", type: "content", read: false } } } }, reading_courses_contents: [{ id: 10, title: "Introduction", content: "<p>Welcome to the course.</p>" }] });
     if (path === "/live_classes_test") return data(response, { videos: [{ id: 1, Class_description: "General Building", live_class_videos: [{ id: 10, name: "Recorded class", status: "archive" }] }] });

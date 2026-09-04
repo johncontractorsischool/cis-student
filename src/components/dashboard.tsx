@@ -3,22 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
   AlertTriangle,
   BookOpen,
   BriefcaseBusiness,
-  CalendarCheck2,
-  ChevronDown,
+  ChevronRight,
   ClipboardCheck,
   FileText,
   Headphones,
   Layers3,
   LogOut,
   PlayCircle,
-  Radio,
   RefreshCw,
   ShieldCheck,
-  Trophy,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -71,67 +67,6 @@ const copy = {
   },
 } as const;
 
-const LICENSING_STEPS = [
-  "Licensing overview",
-  "Complete your CSLB application",
-  "Learn how to study",
-  "Check in on your progress",
-  "Review your acknowledgement letter",
-  "Schedule your exams",
-  "Prepare for test day",
-  "Complete the final licensing steps",
-] as const;
-
-const JOURNEY_PHASES: Array<{
-  description: string;
-  end: number;
-  icon: LucideIcon;
-  iconClass: string;
-  start: number;
-  title: string;
-}> = [
-  {
-    title: "CSLB Application",
-    description: "Complete and submit your contractor license application.",
-    start: 1,
-    end: 2,
-    icon: FileText,
-    iconClass: "orange",
-  },
-  {
-    title: "Prepare for Exams",
-    description: "Build a study plan and prepare with your ExamPrep courses.",
-    start: 3,
-    end: 4,
-    icon: BookOpen,
-    iconClass: "purple",
-  },
-  {
-    title: "Schedule & Pass Exams",
-    description: "Schedule with PSI, prepare for test day, and pass both exams.",
-    start: 5,
-    end: 7,
-    icon: CalendarCheck2,
-    iconClass: "green",
-  },
-  {
-    title: "Activate License",
-    description: "Complete the final CSLB requirements and activate your license.",
-    start: 8,
-    end: 8,
-    icon: BarChart3,
-    iconClass: "blue",
-  },
-  {
-    title: "Contracting With Success",
-    description: "Use your resources and forms to start building your business.",
-    start: 9,
-    end: 9,
-    icon: Trophy,
-    iconClass: "purple",
-  },
-];
-
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -176,15 +111,6 @@ function progressLabel(
     return `${progress.completed} of ${progress.total} complete`;
   }
   return fallback;
-}
-
-function journeyStatus(progress: number, start: number, end: number) {
-  const currentStep = Math.min(progress + 1, 9);
-  if (progress >= end) return { className: "complete", label: "Complete" };
-  if (currentStep >= start && currentStep <= end) {
-    return { className: "in-progress", label: "In progress" };
-  }
-  return { className: "not-started", label: "Not started" };
 }
 
 export function Dashboard() {
@@ -256,6 +182,10 @@ export function Dashboard() {
     return () => window.removeEventListener("focus", refreshOnFocus);
   }, [load]);
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   function changeLanguage(nextLanguage: "en" | "es") {
     setLanguage(nextLanguage);
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
@@ -290,20 +220,14 @@ export function Dashboard() {
     const user = data.user;
     const demo = isDemoAccount(user);
     const tools: Array<{ href: string; icon: LucideIcon; label: string }> = [
-      { href: "/account", icon: UserRound, label: "My Account" },
       { href: "/resources", icon: Layers3, label: "Resources" },
-      {
-        href: language === "es" ? "/live?l=es" : "/live",
-        icon: Radio,
-        label: language === "es" ? "Clase en vivo" : "Live Class",
-      },
     ];
 
     if (demo || Number(user.account_type) === 1) {
       tools.push({ href: "/contract-forms", icon: BriefcaseBusiness, label: "Contract Forms" });
     }
     return tools;
-  }, [data, language]);
+  }, [data]);
 
   if (loading) return <DashboardSkeleton />;
 
@@ -321,7 +245,6 @@ export function Dashboard() {
   const user = data.user;
   const exams = combinedProgress(data.studyProgress, "exams");
   const videos = combinedProgress(data.studyProgress, "videos");
-  const licensingProgress = Math.max(0, Math.min(8, Number(user.licensing_steps_progress || 0)));
   const licensingAccount = Number(user.account_type) === 1;
   const applicationAccount = hasIApplicationAccess(user);
   const liveApplications = applicationsFrom(data.iApplication);
@@ -337,11 +260,7 @@ export function Dashboard() {
         ? "Application record not found"
         : showsApplicationStatus && iApplicationAvailability === "available" && liveApplications.length > 0
           ? "Your application is up to date"
-          : licensingAccount
-            ? LICENSING_STEPS[Math.min(licensingProgress, LICENSING_STEPS.length - 1)]
-            : applicationAccount
-              ? "Complete your CSLB application"
-              : "Keep preparing for your exams"
+          : "iApplication status"
   );
   const nextStepDescription = actionPresentation?.description || (
     showsApplicationStatus && iApplicationAvailability === "not_linked"
@@ -352,9 +271,7 @@ export function Dashboard() {
           ? "Live application status is temporarily unavailable. Your other dashboard tools still work."
           : showsApplicationStatus && liveApplications.length > 0
             ? "There is no new licensing action for you right now."
-            : showsApplicationStatus
-              ? "Complete this step to keep your licensing journey moving."
-              : "Continue studying to build confidence for exam day."
+            : "Open iApplication from the action provided by CIS when your next step is ready."
   );
 
   const deviceBlocked = !isDemoAccount(user) && data.deviceStatus !== "verified";
@@ -421,6 +338,35 @@ export function Dashboard() {
     },
   ];
 
+  const practiceClasses = Array.isArray(data.practice?.classes)
+    ? data.practice.classes.filter((value): value is Record<string, unknown> => Boolean(value && typeof value === "object"))
+    : [];
+  const practiceClass = practiceClasses.find((item) => Number(item.completed_count || 0) > 0 && Number(item.completed_count || 0) < Number(item.total_count || 0));
+  const continueCard = practiceClass
+    ? {
+        description: `${Number(practiceClass.completed_count || 0)} of ${Number(practiceClass.total_count || 0)} tests complete`,
+        href: `/practice/${encodeURIComponent(String(practiceClass.id))}/${encodeURIComponent(String(practiceClass.test_category_id))}${language === "es" ? "?l=es" : ""}`,
+        icon: ClipboardCheck,
+        label: language === "es" ? "Continuar practicando" : "Continue practicing",
+        title: text(language === "es" ? practiceClass.name_es : practiceClass.name) || ui.practice,
+      }
+    : videos.completed > 0 && videos.completed < videos.total
+      ? {
+          description: `${videos.completed} of ${videos.total} videos complete`,
+          href: language === "es" ? "/courses/video?l=es" : "/courses/video",
+          icon: PlayCircle,
+          label: language === "es" ? "Continuar viendo" : "Continue watching",
+          title: ui.video,
+        }
+      : {
+          description: language === "es" ? "Continúe con su próximo capítulo" : "Pick up with your next chapter",
+          href: language === "es" ? "/courses/reading?l=es" : "/courses/reading",
+          icon: BookOpen,
+          label: ui.continueReading,
+          title: language === "es" ? "Curso de lectura" : "Reading Course",
+        };
+  const ContinueIcon = continueCard.icon;
+
   return (
     <main className="journey-dashboard">
       <DashboardNotice app={data.app} />
@@ -435,9 +381,6 @@ export function Dashboard() {
           <p>{ui.subtitle}</p>
         </div>
         <div className="journey-utilities">
-          <button className="icon-button" onClick={() => void load()} aria-label="Refresh dashboard" title="Refresh dashboard">
-            <RefreshCw aria-hidden="true" />
-          </button>
           <div className="journey-language" aria-label="Content language">
             <button className={language === "en" ? "selected" : ""} onClick={() => changeLanguage("en")}>EN</button>
             <button className={language === "es" ? "selected" : ""} onClick={() => changeLanguage("es")}>ES</button>
@@ -452,6 +395,12 @@ export function Dashboard() {
 
       <RenewalCard renewal={data.renewal} />
 
+      <Link className="continue-study-card dashboard-surface" href={continueCard.href}>
+        <span><ContinueIcon aria-hidden="true" /></span>
+        <div><p>{language === "es" ? "Continuar estudiando" : "Continue studying"}</p><h2>{continueCard.title}</h2><small>{continueCard.description}</small></div>
+        <strong>{continueCard.label}<ChevronRight aria-hidden="true" /></strong>
+      </Link>
+
       <section className="study-panel dashboard-surface" aria-labelledby="study-title">
         <div className="study-panel-heading">
           <span className="study-heading-icon"><BookOpen aria-hidden="true" /></span>
@@ -464,18 +413,18 @@ export function Dashboard() {
           {studyCards.map((card) => {
             const Icon = card.icon;
             return (
-              <article className="study-card" key={card.href}>
+              <Link className="study-card" href={card.href} key={card.href}>
                 <Icon className="study-card-icon" aria-hidden="true" />
                 <h3>{card.label}</h3>
                 <p><span />{card.status}</p>
-                <Link className="study-card-button" href={card.href}>{card.button}</Link>
-              </article>
+                <span className="study-card-button">{card.button}</span>
+              </Link>
             );
           })}
         </div>
       </section>
 
-      <section className="next-step-card dashboard-surface" aria-labelledby="next-step-title">
+      {showsApplicationStatus ? <section className={`next-step-card dashboard-surface ${actionPresentation ? "actionable" : "compact"}`} id="iapplication" aria-labelledby="next-step-title">
         <span className="next-step-icon"><FileText aria-hidden="true" /></span>
         <div className="next-step-copy">
           <p>{ui.nextStep}</p>
@@ -488,10 +437,8 @@ export function Dashboard() {
           <span className={`next-step-state ${iApplicationAvailability === "unavailable" ? "unavailable" : "owner-cis"}`}>
             {iApplicationAvailability === "unavailable" ? "Status unavailable" : "No action needed"}
           </span>
-        ) : (
-          <Link className="next-step-button" href={language === "es" ? "/practice?l=es" : "/practice"}>{ui.startPracticing}</Link>
-        )}
-      </section>
+        ) : null}
+      </section> : null}
 
       {liveApplications.length && data.iApplication ? (
         <IApplicationJourney
@@ -503,29 +450,6 @@ export function Dashboard() {
           }}
           studyProgress={data.studyProgress}
         />
-      ) : licensingAccount ? (
-        <section className="journey-section" aria-labelledby="journey-title">
-          <h2 id="journey-title">{ui.journey}</h2>
-          <div className="journey-list dashboard-surface">
-            {JOURNEY_PHASES.map((phase) => {
-              const Icon = phase.icon;
-              const status = journeyStatus(licensingProgress, phase.start, phase.end);
-              return (
-                <details className="journey-row" key={phase.title}>
-                  <summary>
-                    <span className={`journey-row-icon ${phase.iconClass}`}><Icon aria-hidden="true" /></span>
-                    <strong>{phase.title}</strong>
-                    <span className={`journey-status ${status.className}`}>{status.label}</span>
-                    <ChevronDown className="journey-chevron" aria-hidden="true" />
-                  </summary>
-                  <div className="journey-row-detail">
-                    <p>{phase.description}</p>
-                  </div>
-                </details>
-              );
-            })}
-          </div>
-        </section>
       ) : null}
 
       <section className="more-tools" aria-labelledby="more-tools-title">
